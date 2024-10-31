@@ -1,0 +1,24 @@
+/* Custom scrollbar styles for WebKit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+    /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    /* Track color (transparent) */
+    border-radius: 10px;
+    /* Rounded corners for track */
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+    /* Thumb color (semi-transparent) */
+    border-radius: 10px;
+    /* Rounded corners for thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.7);
+    /* Thumb color on hover */
+}
