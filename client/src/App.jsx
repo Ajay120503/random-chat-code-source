@@ -1,11 +1,28 @@
-import './App.css';
 import { useEffect, useRef, useState } from 'react';
-import { Box, VStack, HStack, Input, Text, IconButton, Button, useToast } from '@chakra-ui/react';
+import {
+  Box,
+  VStack,
+  HStack,
+  Input,
+  Text,
+  IconButton,
+  Button,
+  Avatar,
+  useToast,
+  Spinner,
+  useColorMode,
+  useColorModeValue,
+  Divider,
+  Fade,
+} from '@chakra-ui/react';
 import { io } from 'socket.io-client';
 import { RiSendPlane2Fill } from 'react-icons/ri';
-import { BiSolidExit } from "react-icons/bi";
+import { MoonIcon, SunIcon } from '@chakra-ui/icons';
+import { motion } from 'framer-motion';
 
-const socket = io('http://localhost:3000'); // Update the server URL as needed
+const MotionBox = motion(Box);
+
+const socket = io('https://random-chat-server.onrender.com'); // Update the server URL as needed
 
 function App() {
   const [messages, setMessages] = useState(() => {
@@ -13,17 +30,19 @@ function App() {
     return savedMessages ? JSON.parse(savedMessages) : [];
   });
   const [newMessage, setNewMessage] = useState('');
-  const [userId, setUserId] = useState(socket.id); // Unique ID for each user
-  const [disconnected, setDisconnected] = useState(false); // State to track disconnection toast
+  const [userId, setUserId] = useState(socket.id);
+  const [userCount, setUserCount] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
-  const toast = useToast(); // Initialize toast
-  const [userCount, setUserCount] = useState(0); // State to track user count
+  const toast = useToast();
+  const { toggleColorMode } = useColorMode();
+  const bg = useColorModeValue('gray.100', 'gray.800');
+  const inputBg = useColorModeValue('white', 'gray.700');
+  const buttonBg = useColorModeValue('blue.500', 'blue.300');
 
   useEffect(() => {
-    // Update userId if socket reconnects
     socket.on('connect', () => setUserId(socket.id));
 
-    // Listen for incoming messages from the server
     socket.on('message', (message) => {
       setMessages((prevMessages) => {
         const updatedMessages = [...prevMessages, message];
@@ -32,33 +51,33 @@ function App() {
       });
     });
 
-    // Listen for new user notifications
-    socket.on('userJoined', ({ userId }) => {
+    socket.on('userJoined', () => {
       toast({
-        description: `New user Join the Chat`,
+        description: `A new user joined the chat`,
         status: 'info',
         duration: 3000,
         isClosable: false,
-        position: "top"
+        position: 'top',
       });
     });
 
-    // Listen for user count updates
-    socket.on('userCount', (count) => {
-      setUserCount(count);
+    socket.on('userCount', (count) => setUserCount(count));
+
+    socket.on('typing', () => {
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 2000); // Reset after 2 seconds
     });
 
-    // Clean up on component unmount
     return () => {
       socket.off('message');
       socket.off('connect');
-      socket.off('userJoined'); // Clean up userJoined listener
-      socket.off('userCount'); // Clean up userCount listener
+      socket.off('userJoined');
+      socket.off('userCount');
+      socket.off('typing');
     };
   }, [toast]);
 
   useEffect(() => {
-    // Scroll to the bottom whenever messages change with a slight delay
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -66,8 +85,7 @@ function App() {
 
   const sendMessage = () => {
     if (newMessage.trim()) {
-      // Emit the message with senderId to the server
-      const message = { text: newMessage, senderId: userId };
+      const message = { text: newMessage, senderId: userId, timestamp: new Date().toLocaleTimeString() };
       socket.emit('message', message);
       setNewMessage('');
     }
@@ -76,6 +94,8 @@ function App() {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       sendMessage();
+    } else {
+      socket.emit('typing');
     }
   };
 
@@ -84,91 +104,120 @@ function App() {
     localStorage.removeItem('messages');
   };
 
-  const handleDisconnect = () => {
-    // Emit a disconnect event (optional)
-    socket.disconnect(); // Disconnect the socket
-    // Show the toast only if it hasn't been shown before
-    if (!disconnected) {
-      toast({
-        description: `You have left the chat.`,
-        status: 'info',
-        duration: 3000,
-        isClosable: false,
-        position: "top"
-      });
-      setDisconnected(true); // Update state to indicate toast has been shown
-    }
-
-    // Attempt to close the browser tab/window
-    window.close(); // This may not work in all browsers unless the window was opened by the script
-  };
-
   return (
-    <Box p={2} maxW="md" mx="auto" display="flex" flexDirection="column" minH="100vh" bg="gray.900">
-      <VStack spacing={4} align="stretch" flex="1">
-        <HStack justify="space-between">
-          <Text
-            fontSize="30px"
-            fontWeight="bold"
-            color="gray.100" // A lighter gray for better contrast with the gray background
-            textShadow="1px 1px 2px rgba(0, 0, 0, 0.5)" // Softer shadow for depth
-          >
-            Rnd
-            <span style={{ color: 'gray.200', textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)' }}>CHAT</span> {/* Lighter shade for "CHAT" */}
-          </Text>
-          <HStack spacing={2}>
-            <Text color="white" fontSize="20px" fontWeight={900}>{userCount}</Text> {/* Display user count */}
-            <Button colorScheme="blue" size="sm" onClick={clearMessages}>Clean</Button>
-            <IconButton
-              bg="transparent" // Set background to transparent
-              _hover={{ bg: 'transparent' }} // Ensure hover background is also transparent
-              _active={{ bg: 'transparent' }} // Ensure active background is also transparent
-              color="red.200" // Set the icon color (you can change this to any color you prefer)
-              onClick={handleDisconnect}
-              icon={<BiSolidExit />}
-              aria-label="Disconnect"
-              fontSize="40px"
-            />
+    <MotionBox
+      p={[2, 4, 8]}
+      minH="100vh"
+      display="flex"
+      flexDirection="column"
+      bg={bg}
+      animate={{ opacity: 1 }}
+      initial={{ opacity: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <VStack spacing={4} align="stretch" flex="1" maxW="container.xl" mx="auto">
+        {/* Header Section */}
+        <HStack justify="space-between" w="full" flexWrap="wrap">
+          <HStack spacing={4}>
+            <Text
+              fontSize={['20px', '30px']}
+              fontWeight="bold"
+              color="blue.400"
+              textShadow="2px 2px 4px rgba(0, 0, 0, 0.5)"
+              mr={5}
+            >
+              Rnd<span style={{ color: 'gray.500' }}>CHAT</span>
+            </Text>
+          </HStack>
+          <HStack spacing={3} flexWrap="wrap">
+            <Avatar size="sm" bg="blue.300" />
+            <Text color="white" fontSize="20px" fontWeight="bold">
+              {userCount}
+            </Text>
+            <Button onClick={toggleColorMode} size="sm">
+              {useColorModeValue(<MoonIcon fontSize="17px" />, <SunIcon fontSize="17px" />)}
+            </Button>
+            <Button colorScheme="red" size="sm" onClick={clearMessages}>
+              <i style={{ fontSize: '17px' }} className="fa-solid fa-trash"></i>
+            </Button>
           </HStack>
         </HStack>
-        <Box bg="gray.100" p={0} borderRadius="md" overflowY="auto" maxH="80vh" minH="80vh">
+
+        <Divider />
+
+        {/* Messages Area */}
+        <MotionBox
+          bg={inputBg}
+          p={4}
+          borderRadius="md"
+          overflowY="auto"
+          maxH="65vh"
+          minH="65vh"
+          boxShadow="lg"
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.3 }}
+        >
           {messages.map((msg, index) => (
             <HStack
               key={index}
               justify={msg.senderId === userId ? 'flex-end' : 'flex-start'}
+              spacing={3}
+              alignItems="self-start"
             >
-              <Text
-                bg={msg.senderId === userId ? 'blue.500' : 'green.500'} // Sender-specific colors
-                color="white"
-                p="10px" // Padding for better spacing
-                m="5px"
-                borderRadius={msg.senderId === userId ? '10px 10px 0 10px' : '10px 10px 10px 0'} // Rounded corners for bubbles
-                maxW="70%" // Maximum width for bubbles
-                alignSelf={msg.senderId === userId ? 'flex-end' : 'flex-start'}
-                boxShadow="0 2px 4px rgba(0, 0, 0, 0.2)" // Add shadow for depth
-              >
-                {msg.text}
-              </Text>
+              <Avatar size="sm" bg={msg.senderId === userId ? 'blue.300' : 'green.300'} />
+              <VStack align={msg.senderId === userId ? 'flex-end' : 'flex-start'}>
+                <Text
+                  bg={msg.senderId === userId ? buttonBg : 'green.500'}
+                  color="white"
+                  p="10px"
+                  m="5px"
+                  borderRadius="md"
+                  boxShadow="0 4px 6px rgba(0, 0, 0, 0.2)"
+                >
+                  {msg.text}
+                </Text>
+                <Text fontSize="xs" color="gray.400">
+                  {msg.timestamp}
+                </Text>
+              </VStack>
             </HStack>
           ))}
           <div ref={messagesEndRef} />
-        </Box>
-        <HStack mt="auto">
+        </MotionBox>
+
+        {isTyping && (
+          <Fade in={isTyping}>
+            <HStack>
+              <Spinner size="xs" />
+              <Text fontSize="sm" color="gray.400">
+                Someone is typing...
+              </Text>
+            </HStack>
+          </Fade>
+        )}
+
+        {/* Input Section */}
+        <HStack mt="auto" w="full" spacing={4} flexWrap="wrap">
           <Input
             placeholder="Type your message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
+            bg={inputBg}
+            flex="1"
           />
           <IconButton
             colorScheme="blue"
             onClick={sendMessage}
             icon={<RiSendPlane2Fill />}
             aria-label="Send Message"
+            size="lg"
+            isRound
           />
         </HStack>
       </VStack>
-    </Box>
+    </MotionBox>
   );
 }
 
