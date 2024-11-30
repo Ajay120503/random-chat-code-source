@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
 
-const socket = io('https://random-chat-server.onrender.com'); // Update the server URL as needed
+const socket = io('http://localhost:3000'); // Update the server URL as needed
 
 function App() {
   const [messages, setMessages] = useState(() => {
@@ -174,6 +174,10 @@ function App() {
                   m="5px"
                   borderRadius="md"
                   boxShadow="0 4px 6px rgba(0, 0, 0, 0.2)"
+                  maxW="300px"
+                  minW="200px"
+                  wordBreak="break-word"  // To ensure long messages wrap correctly
+                  whiteSpace="normal"     // Avoid text overflowing
                 >
                   {msg.text}
                 </Text>
