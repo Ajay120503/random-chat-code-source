@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
 
-const socket = io('http://localhost:3000'); // Update the server URL as needed
+const socket = io('https://random-chat-server.onrender.com'); // Update the server URL as needed
 
 function App() {
   const [messages, setMessages] = useState(() => {
@@ -106,7 +106,7 @@ function App() {
 
   return (
     <MotionBox
-      p={[2, 4, 8]}
+      p={[2, 2, 2]}
       minH="100vh"
       display="flex"
       flexDirection="column"
@@ -116,7 +116,7 @@ function App() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <VStack spacing={4} align="stretch" flex="1" maxW="container.xl" mx="auto">
+      <VStack spacing={4} align="stretch" flex="1" maxW="container.sm" mx="auto">
         {/* Header Section */}
         <HStack justify="space-between" w="full" flexWrap="wrap">
           <HStack spacing={4}>
@@ -175,7 +175,6 @@ function App() {
                   borderRadius="md"
                   boxShadow="0 4px 6px rgba(0, 0, 0, 0.2)"
                   maxW="300px"
-                  minW="200px"
                   wordBreak="break-word"  // To ensure long messages wrap correctly
                   whiteSpace="normal"     // Avoid text overflowing
                 >
@@ -202,7 +201,7 @@ function App() {
         )}
 
         {/* Input Section */}
-        <HStack mt="auto" w="full" spacing={4} flexWrap="wrap">
+        <HStack mt={5} w="full" spacing={4} flexWrap="wrap">
           <Input
             placeholder="Type your message..."
             value={newMessage}
